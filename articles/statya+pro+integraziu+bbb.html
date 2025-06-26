@@ -1,0 +1,493 @@
+<!-- title: Статья про интеграцию BigBlueButton, Keyсloak, FreeIPA -->
+<!-- Дата создания документа 26.06.2025 -->
+<!-- omit from toc -->
+<h1 id="stat-ia-pro-integratsiiu-bigbluebutton-keysloak-freeipa">Статья про интеграцию BigBlueButton, Keyсloak, FreeIPA</h1>
+<!-- omit from toc -->
+<h2 id="soderzhanie">Содержание</h2>
+<ul>
+<li><a href="#dlia-kogo-stat-ia">Для кого статья</a></li>
+<li><a href="#chto-za-servery-bigbluebutton-keysloak-freeipa">Что за серверы <code>BigBlueButton</code>, <code>Keyсloak</code>, <code>FreeIPA</code>?</a></li>
+<li><a href="#o-chiom-budet-idti-rech-v-stat-e">О чём будет идти речь в статье?</a></li>
+<li><a href="#chto-ne-budet-rassmatrivat-sia-v-stat-e">Что не будет рассматриваться в статье</a></li>
+<li><a href="#kak-ustanovit-bigbluebutton">Как установить <code>BigBlueButton</code></a></li>
+<li><a href="#chto-ustanavlivaetsia">Что устанавливается</a></li>
+<li><a href="#kuda-ustanavlivaetsia-bigbluebutton">Куда устанавливается <code>BigBlueButton</code></a></li>
+<li><a href="#gde-raspolagaetsia-server-bigbluebutton">Где располагается сервер <code>BigBlueButton</code></a></li>
+<li><a href="#porty-tcp-i-udp-dlia-raboty-bigbluebutton">Порты TCP и UDP для работы <code>BigBlueButton</code></a></li>
+<li><a href="#porty-tcp-i-udp-dlia-raboty-keycloak-dlia-podkliucheniia-k-freeipa">Порты <code>TCP</code> и <code>UDP</code> для работы <code>Keycloak</code> для подключения к <code>FreeIPA</code></a></li>
+<li><a href="#ustanavlivaem-bigbluebutton-na-server-ubuntu">Устанавливаем <code>BigBlueButton</code> на сервер <code>Ubuntu</code></a>
+<ul>
+<li><a href="#kliuchi-ustanovki">Ключи установки</a></li>
+</ul>
+</li>
+<li><a href="#chto-poluchitsia-v-rezul-tate-zapuska-skripta-bbb-install-sh">Что получится в результате запуска скрипта <code>bbb-install.sh</code></a></li>
+<li><a href="#sozdanie-zapisi-administratora-dlia-bigbluebutton-i-pochemu-eto-mozhno-ne-delat">Создание записи администратора для <code>BigBlueButton</code> (и почему это можно не делать)</a></li>
+<li><a href="#server-bigbluebutton-gotov">Сервер <code>BigBlueButton</code> готов</a></li>
+<li><a href="#nastraivaem-keycloak">Настраиваем <code>Keycloak</code></a>
+<ul>
+<li><a href="#sleduiushchii-shag-sozdanie-klienta">Следующий шаг, создание клиента</a></li>
+</ul>
+</li>
+<li><a href="#nastraivaem-podkliuchenie-keycloak-k-freeipa">Настраиваем подключение <code>Keycloak</code> к <code>FreeIPA</code></a>
+<ul>
+<li><a href="#dobavliaem-otobrazhenie-polia-uidnumber">Добавляем отображение поля <code>uidNumber</code></a></li>
+<li><a href="#dobavliaem-poisk-grupp">Добавляем поиск групп</a></li>
+<li><a href="#proverim-polia-firstname-lastname">Проверим поля <code>firstName</code>, <code>lastName</code></a>
+<ul>
+<li><a href="#otobrazhenie-first-name">Отображение <code>first Name</code></a></li>
+</ul>
+</li>
+<li><a href="#otobrazhenie-lastname">Отображение <code>lastName</code></a></li>
+</ul>
+</li>
+<li><a href="#sinkhronizatsiia-keycloak-i-freeipa">Синхронизация <code>Keycloak</code> и <code>FreeIPA</code></a></li>
+<li><a href="#prosmotr-pol-zovatelei">Просмотр пользователей</a></li>
+<li><a href="#nastroika-sopostavleniia-grupp">Настройка сопоставления групп</a></li>
+<li><a href="#podkliuchaem-keycloak-k-greenlight">Подключаем <code>Keycloak</code> к <code>Greenlight</code></a></li>
+<li><a href="#kak-sdelat">Как сделать</a>
+<ul>
+<li><a href="#kak-prisvoit-rol-administratora-dlia-uchetnoi-zapisi-v-keycloak">Как присвоить роль администратора для учетной записи в <code>Keycloak</code></a></li>
+</ul>
+</li>
+<li><a href="#problemy">Проблемы</a>
+<ul>
+<li><a href="#pri-izmenenii-v-user-federation-i-obnovlenii-informatsii-o-pol-zovateliakh-poiavliaetsia-oshibka-otobrazheniia">При изменении в <code>User federation</code> и обновлении информации о пользователях появляется ошибка отображения</a></li>
+<li><a href="#pri-sopostavlenii-grupp-poiavliaetsia-oshibka">При сопоставлении групп появляется ошибка</a></li>
+</ul>
+</li>
+<li><a href="#osnovnye-komandy-kotorye-mogut-vam-potrebovat-sia-pri-rabote-cherez-ssh-klient">Основные команды, которые могут Вам потребоваться при работе через SSH-клиент</a>
+<ul>
+<li><a href="#faily-i-direktorii-kotorye-mogut-byt-polezny">Файлы и директории, которые могут быть полезны</a></li>
+</ul>
+</li>
+<li><a href="#dopolnitel-nye-materialy">Дополнительные материалы</a></li>
+</ul>
+<h2 id="dlia-kogo-stat-ia">Для кого статья</h2>
+<p>Статья для тех, кому нужен сервер <code>BigBlueButton</code> и нужно что бы он брал учётные записи из сервера <code>FreeIPA</code>, но не знают как подступиться и ищут информацию.</p>
+<p>В <code>Инете</code> полно статей о настройке <code>BigBlueButton</code>, но в большинстве статьи устаревшие. К установке <code>BigBlueButton</code> версии 3.0 не годятся. Потратил 2 или 3 недели на поиски руководств и попыток установить <code>BigBlueButton</code>.</p>
+<p>Вот об этом и пишу, опираясь на свой опыт.</p>
+<h2 id="chto-za-servery-bigbluebutton-keysloak-freeipa">Что за серверы <code>BigBlueButton</code>, <code>Keyсloak</code>, <code>FreeIPA</code>?</h2>
+<p><code>BigBlueButton</code> - Открытое программное обеспечение, сервер онлайн конференций.</p>
+<p><code>Keyсloak</code> - Открытое программное обеспечение, служба аутентификации для входа в приложения. Еще называется &quot;Единый вход в систему&quot; - <code>SSO</code> - <code>&quot;Single-Sign On&quot;</code>.</p>
+<p><code>FreeIPA</code> - Открытое программное обеспечение, служба каталогов, управление аутентификацией пользователей.</p>
+<h2 id="o-chiom-budet-idti-rech-v-stat-e">О чём будет идти речь в статье?</h2>
+<p>Быстро будет рассмотрена установка <code>BigBlueButton</code>. Всё в общем расписано на странице руководства по установке <code>BigBlueButton</code> <a href="https://docs.bigbluebutton.org/administration/install/">Install BigBlueButton</a>.</p>
+<p>Подробно будет разбираться настройка службы <code>Keycloak</code> для подключения этой службы к серверу <code>FreeIPA</code>.</p>
+<h2 id="chto-ne-budet-rassmatrivat-sia-v-stat-e">Что не будет рассматриваться в статье</h2>
+<p>В статье не будет рассматриваться настройка сервера <code>FreeIPA</code>.</p>
+<p>Рассматриваются опции подключения <code>Keycloak</code> только в рамках подключения к <code>FreeIPA</code>.</p>
+<h2 id="kak-ustanovit-bigbluebutton">Как установить <code>BigBlueButton</code></h2>
+<p>Тут всё просто. Нужно читать <a href="https://docs.bigbluebutton.org/administration/install/">Install BigBlueButton</a> и всё сделать как там написано.</p>
+<h2 id="chto-ustanavlivaetsia">Что устанавливается</h2>
+<p><code>BigBlueButton</code> версии 3.0.</p>
+<h2 id="kuda-ustanavlivaetsia-bigbluebutton">Куда устанавливается <code>BigBlueButton</code></h2>
+<p>Устанавливается на сервер <code>Ubuntu</code> версии 22.04.</p>
+<h2 id="gde-raspolagaetsia-server-bigbluebutton">Где располагается сервер <code>BigBlueButton</code></h2>
+<p>Сервер <code>BigBlueButton</code> расположен за NAT, в локальной сети.</p>
+<h2 id="porty-tcp-i-udp-dlia-raboty-bigbluebutton">Порты TCP и UDP для работы <code>BigBlueButton</code></h2>
+<p>Для работы <code>BigBlueButton</code> на сервере <code>BigBlueButton</code> и шлюзе открыты порты:</p>
+<pre><code>TCP: 80, 443
+UDP: 16384 - 32768
+</code></pre>
+<p>Да, больше никаких портов открытых для <code>BigBlueButton</code> не нужно. Всё будет работать.</p>
+<p>[Замечание]
+Нужно проверить открытые порты до установки <code>BigBlueButton</code>.</p>
+<p>Почитать можно здесь: <a href="https://docs.bigbluebutton.org/administration/firewall-configuration/">Firewall Configuration</a>.</p>
+<h2 id="porty-tcp-i-udp-dlia-raboty-keycloak-dlia-podkliucheniia-k-freeipa">Порты <code>TCP</code> и <code>UDP</code> для работы <code>Keycloak</code> для подключения к <code>FreeIPA</code></h2>
+<p>Для подключения к <code>FreeIPA</code> нужно открыть порты:</p>
+<pre><code>TCP: 389 636 88 464
+UDP: 88 464
+</code></pre>
+<h2 id="ustanavlivaem-bigbluebutton-na-server-ubuntu">Устанавливаем <code>BigBlueButton</code> на сервер <code>Ubuntu</code></h2>
+<p>Сначала нужно изменить записи ДНС в домене <code>company.ru</code>. Нужно внести запись о сервере <code>BigBlueButton</code> <code>bbb.company.ru</code>.</p>
+<p>Сама установка <code>BigBlueButton</code>:</p>
+<pre><code># apt install iputils-ping vim net-tools netcat bash-completion screen ca-certificates mc dos2unix language-pack-en nmap traceroute htop
+# update-locale LANG=en_US.UTF-8
+# systemctl set-environment LANG=en_US.UTF-8
+# reboot
+# wget https://raw.githubusercontent.com/bigbluebutton/bbb-install/v3.0.x-release/bbb-install.sh
+# chmod +x bbb-install.sh
+# ./bbb-install.sh -v jammy-300 -s bbb.company.ru -e admin@company.ru -g -k
+</code></pre>
+<h3 id="kliuchi-ustanovki">Ключи установки</h3>
+<p>-g - установим <code>Greenlight</code>. Web интерфейс для работы с <code>BigBlueButton</code>;</p>
+<p>-k - установить <code>Keycloak</code>.</p>
+<p><code>Greenlight</code> для <code>BigBlueButton</code> - это простой веб-интерфейс для проведения вебинаров и веб-конференций. В нашей конфигурации он нужен.</p>
+<h2 id="chto-poluchitsia-v-rezul-tate-zapuska-skripta-bbb-install-sh">Что получится в результате запуска скрипта <code>bbb-install.sh</code></h2>
+<p>В результате установятся сервисы и контейнеры необходимые для работы сервера <code>BigBlueButton</code>.</p>
+<p>Некоторые из них: <code>GREENLIGHT</code>, <code>KEYCLOAK</code>, <code>NGINX</code>, <code>HAPROXY</code>, <code>POSTGRESSQL</code>, <code>LETSENCRYPT</code>.</p>
+<p>Используем только этот скрипт для установки, обновления и после изменений конфигурации <code>BigBlueButton</code>.</p>
+<p>Установится сертификат от <code>Letsencrypt</code>.</p>
+<p>Пропишется в <code>CRON</code> служба обновления сертификата.</p>
+<h2 id="sozdanie-zapisi-administratora-dlia-bigbluebutton-i-pochemu-eto-mozhno-ne-delat">Создание записи администратора для <code>BigBlueButton</code> (и почему это можно не делать)</h2>
+<p>Нужно сразу разделить учётные записи созданные в <code>Keycloak</code> и учётные записи созданные в <code>Greenlight</code>.</p>
+<p>Вот так создаётся административная запись в <code>Greenlight</code>, <a href="https://docs.bigbluebutton.org/greenlight/v3/install/#creating-an-admin-account">Creating an Admin Account</a>:</p>
+<pre><code># cd greenlight-v3
+# docker exec greenlight-v3 bundle exec rake admin:create['admin','admin@company.ru','P@ssw0rd']
+</code></pre>
+<p>Почему это можно не делать, если потом будете использовать <code>Keycloak</code>?</p>
+<p>При использовании службы <code>Keycloak</code> учётные записи, которые создали в <code>BigBlueButton</code>, будут <em>не видны</em>. Забавно то, что, если потом отключить <code>Keycloak</code> записи появятся.</p>
+<p>Учётные записи созданные в <code>Greenlight</code> и <code>Keycloak</code> не смешиваются. При подключении <code>Keycloak</code> учётки <code>Greenlight</code> будут скрыты, но будут блокировать совпадающие учётки <code>Keycloak</code> Т.о. если есть учётная запись в <code>Greenlight</code>, и такая же учётная запись в <code>Keycloak</code>, то войти на сервер <code>BigBlueButton</code> не удастся.</p>
+<p>[Замечание]
+Если есть учётная запись в <code>Greenlight</code>, и такая же учётная запись в <code>Keycloak</code>, то войти на сервер <code>BigBlueButton</code> не удастся.</p>
+<p>Придется отключать <code>Keycloak</code>, входить на сервер <code>BigBlueButton</code> с учетной записью <code>Greenlight</code> администратора и удалять совпадающую запись.</p>
+<h2 id="server-bigbluebutton-gotov">Сервер <code>BigBlueButton</code> готов</h2>
+<p>Нужно перезагрузить сервер и зайти на web-страницу.</p>
+<h2 id="nastraivaem-keycloak">Настраиваем <code>Keycloak</code></h2>
+<p>В файле <code>/root/greenlight-run/docker-compose.yml</code> забираете пароль администратора <code>admin</code> <code>Keycloak</code> из значения <code>KEYCLOAK_ADMIN_PASSWORD</code>.</p>
+<p>Идёте на страницу <code>https://bbb.company.ru/keycloak</code> для настройки подключения к <code>FreeIPA</code>.</p>
+<p>Там выбираете в левой части <code>Administration Console</code>, вводите имя пользователя <code>admin</code> и пароль.</p>
+<p>Слева, вверху видите раскрывающийся список. Первая запись <code>master</code>. Раскрываете список и щелкаете <code>Create Realm</code>. Создаёте новую область <code>greenlight</code>.</p>
+<h3 id="sleduiushchii-shag-sozdanie-klienta">Следующий шаг, создание клиента</h3>
+<p>Открываете <code>Keycloak</code>, выбираете <code>Administration Console</code>, выбираете слева область <code>greelight</code>, выбираете слева <code>Client</code>, <code>Create client</code>, заполняете <code>Client ID</code>, <code>Next</code>, включаете <code>Client authentication</code>, далее <code>Save</code>.</p>
+<p>Выбирает слева <code>Client</code>, справа, в списках <code>Clients</code>, открываете только что созданного клиента <code>greenlight</code>, закладка <code>Settings</code>, поле <code>Valid redirect URIs</code>, вводите адрес сайта <code>BigBlueButton</code> <code>https://bbb.company.ru/*</code></p>
+<p>Открываете закладку <code>Credentials</code>, сохраняете для себя содержимое поля <code>Client secret</code>, позже вы используете это для заполнения <code>OPENID_CONNECT_CLIENT_SECRET</code>
+в файле <code>.env</code>.</p>
+<h2 id="nastraivaem-podkliuchenie-keycloak-k-freeipa">Настраиваем подключение <code>Keycloak</code> к <code>FreeIPA</code></h2>
+<p>Открываете <code>Keycloak</code>, выбираете <code>Administration Console</code>, выбираете слева область <code>greelight</code>, далее <code>User federation</code>, далее <code>Add new provider</code>, далее <code>LDAP</code>. Далее <code>Vendor</code> выбираете <code>Other</code>.</p>
+<p>Дальше перечислю значения, которые необходимо заполнить:</p>
+<table>
+<thead>
+<tr>
+<th>Опция настройки</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Connection URL</td>
+<td><code>ldap://freeipa.company.ru:389</code></td>
+</tr>
+<tr>
+<td>Connection timeout</td>
+<td>600</td>
+</tr>
+<tr>
+<td>Bind type</td>
+<td>simple</td>
+</tr>
+<tr>
+<td>Bind DN</td>
+<td>uid=admin,cn=users,cn=accounts,dc=company,dc=ru</td>
+</tr>
+<tr>
+<td>Bind credentials</td>
+<td>P@ssw0rd</td>
+</tr>
+<tr>
+<td>Edit mode</td>
+<td>READ_ONLY</td>
+</tr>
+<tr>
+<td>Users DN</td>
+<td>cn=users,cn=accounts,dc=company,dc=ru</td>
+</tr>
+<tr>
+<td>Username LDAP attribute</td>
+<td>uid</td>
+</tr>
+<tr>
+<td>RDN LDAP attribute</td>
+<td>uid</td>
+</tr>
+<tr>
+<td>UUID LDAP attribute</td>
+<td>uidNumber</td>
+</tr>
+<tr>
+<td>User object classes</td>
+<td>inetOrgPerson, organizationalPerson</td>
+</tr>
+<tr>
+<td>User LDAP filter</td>
+<td><code>(&amp;(objectClass=inetOrgPerson)(!(nsaccountlock=TRUE))(mail=*))</code></td>
+</tr>
+<tr>
+<td>Search scope</td>
+<td>One Level</td>
+</tr>
+<tr>
+<td>Read timeout</td>
+<td>600</td>
+</tr>
+<tr>
+<td>Import users</td>
+<td>ON</td>
+</tr>
+<tr>
+<td>Sync Registrations</td>
+<td>ON</td>
+</tr>
+<tr>
+<td>Trust email</td>
+<td>ON</td>
+</tr>
+</tbody>
+</table>
+<p>[Замечание]
+Поле <code>User LDAP filter</code> настроено для отбора пользователей у которых <em>есть</em> электронная почта.</p>
+<p>[Замечание]
+Отбор пользователей в созданном провайдере производится вручную. Но можно настроить и на периодическую синхронизацию.</p>
+<h3 id="dobavliaem-otobrazhenie-polia-uidnumber">Добавляем отображение поля <code>uidNumber</code></h3>
+<p>Открываете <code>Keycloak</code>, далее <code>Administration Console</code>, выбираете слева область <code>greelight</code>, далее <code>User federation</code>, далее <code>LDAP</code>, далее <code>Mappers</code>, далее <code>Add mapper</code>.</p>
+<p>Дальше перечислю значения, которые необходимо заполнить:</p>
+<table>
+<thead>
+<tr>
+<th>Опция настройки</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>uidNumber</td>
+</tr>
+<tr>
+<td>Mapper type</td>
+<td>user-attribute-ldap-mapper</td>
+</tr>
+<tr>
+<td>User Model Attribute</td>
+<td>uidNumber</td>
+</tr>
+<tr>
+<td>LDAP Attribute</td>
+<td>uidNumber</td>
+</tr>
+<tr>
+<td>Read Only</td>
+<td>ON</td>
+</tr>
+<tr>
+<td>Force a Default Value</td>
+<td>ON</td>
+</tr>
+</tbody>
+</table>
+<h3 id="dobavliaem-poisk-grupp">Добавляем поиск групп</h3>
+<p>Открываете <code>Keycloak</code>, далее <code>Administration Console</code>, выбираете слева область <code>greelight</code>, далее <code>User federation</code>, далее <code>LDAP</code>, далее <code>Mappers</code>, далее <code>Add mapper</code>.</p>
+<p>Дальше перечислю значения, которые необходимо заполнить:</p>
+<table>
+<thead>
+<tr>
+<th>Опция настройки</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>ldap-groups</td>
+</tr>
+<tr>
+<td>Mapper type</td>
+<td>group-ldap-mapper</td>
+</tr>
+<tr>
+<td>LDAP Groups DN</td>
+<td>cn=groups,cn=accounts,dc=company,dc=ru</td>
+</tr>
+<tr>
+<td>Group Name LDAP Attribute</td>
+<td>cn</td>
+</tr>
+<tr>
+<td>Group Object Classes</td>
+<td>groupOfNames</td>
+</tr>
+<tr>
+<td>Membership LDAP Attribute</td>
+<td>member</td>
+</tr>
+<tr>
+<td>Membership Attribute Type</td>
+<td>DN</td>
+</tr>
+<tr>
+<td>Membership User LDAP Attribute</td>
+<td>uid</td>
+</tr>
+<tr>
+<td>LDAP filter</td>
+<td><code>(&amp;(objectClass=posixGroup)(|(cn=group_name_*)))</code></td>
+</tr>
+<tr>
+<td>Mode</td>
+<td>READ_ONLY</td>
+</tr>
+<tr>
+<td>User Groups Retrieve Strategy</td>
+<td>LOAD_GROUPS_BY_MEMBER_ATTRIBUTE</td>
+</tr>
+<tr>
+<td>Member-Of LDAP Attribute</td>
+<td>memberOf</td>
+</tr>
+<tr>
+<td>Groups Path</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+<p>[Замечание]
+Сначала я использовал значение для <code>User Groups Retrieve Strategy</code> <code>LOAD_GROUPS_BY_MEMBER_ATTRIBUTE</code>. Потом прочитал в <a href="https://wiki.orionsoft.ru/zvirt/latest/keycloak/management-guide/">Руководство по управлению Keycloak</a>, что правильнее использовать <code>GET_GROUPS_FROM_USER_MEMBEROF_ATTRIBUTE</code>.</p>
+<p>И там же написано, что можно сопоставить атрибуты дополнительных полей групп. В поле <code>Mapped Group Attributes</code> добавить через запятую поля <code>whenCreated, description</code>.</p>
+<p>Проверить атрибуты групп можно <code>Groups</code> далее <code>ldap_group</code>, далее <code>Group details</code>, далее <code>Attributes</code>.</p>
+<h3 id="proverim-polia-firstname-lastname">Проверим поля <code>firstName</code>, <code>lastName</code></h3>
+<p>Открываете <code>Keycloak</code>, далее <code>Administration Console</code>, выбираете слева область <code>greelight</code>, далее <code>User Federation</code>, далее <code>LDAP</code>, далее <code>Mappers</code>.</p>
+<h4 id="otobrazhenie-first-name">Отображение <code>first Name</code></h4>
+<table>
+<thead>
+<tr>
+<th>Опция настройки</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User Model Attribute</td>
+<td>firstName</td>
+</tr>
+<tr>
+<td>LDAP Attribute</td>
+<td>givenName</td>
+</tr>
+</tbody>
+</table>
+<h3 id="otobrazhenie-lastname">Отображение <code>lastName</code></h3>
+<table>
+<thead>
+<tr>
+<th>Опция настройки</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User Model Attribute</td>
+<td>lastName</td>
+</tr>
+<tr>
+<td>LDAP Attribute</td>
+<td>sn</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sinkhronizatsiia-keycloak-i-freeipa">Синхронизация <code>Keycloak</code> и <code>FreeIPA</code></h2>
+<p>Для отбора пользователей из <code>FreeIPA</code> нужно войти в провайдер <code>LDAP</code>, в правом верхнем угла нажать <code>Action</code> и выбрать <code>Sync all users</code>.</p>
+<h2 id="prosmotr-pol-zovatelei">Просмотр пользователей</h2>
+<p>Открываете <code>Keycloak</code>, далее <code>Administration Console</code>, выбираете слева область <code>greelight</code>, далее <code>Users</code>.</p>
+<h2 id="nastroika-sopostavleniia-grupp">Настройка сопоставления групп</h2>
+<p>Прочитал про сопоставления групп в <a href="https://habr.com/ru/articles/441112/">Прикручиваем LDAP-авторизацию...</a> и <a href="https://docs.truedev.ru/Auth/keycloak/keycloak/#roles">Общие понятия Keycloak</a>.</p>
+<p>Сделал сопоставление для групп.</p>
+<p>Открываете <code>Keycloak</code>, далее <code>Administration Console</code>, выбираете слева область <code>greelight</code>, далее <code>Client scope</code>, далее <code>groups</code>, далее <code>Mappers</code>, далее <code>Add mapper</code>, далее <code>By configuration</code>, далее <code>Group membership</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Опция настройки</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>groups</td>
+</tr>
+<tr>
+<td>Multivalued</td>
+<td>ON</td>
+</tr>
+<tr>
+<td>Token Claim Name</td>
+<td>groups</td>
+</tr>
+<tr>
+<td>Claim JSON Type</td>
+<td>String</td>
+</tr>
+<tr>
+<td>Add to ID token</td>
+<td>ON</td>
+</tr>
+<tr>
+<td>Add to access token</td>
+<td>ON</td>
+</tr>
+<tr>
+<td>Add to userinfo</td>
+<td>ON</td>
+</tr>
+</tbody>
+</table>
+<p>Следующим шагом настройки сопоставления было добавление области действия <code>Client scope</code> <code>groups</code> клиенту <code>greenlight</code>.</p>
+<p>Открываете <code>Keycloak</code>, далее <code>Administration Console</code>, выбираете слева область <code>greelight</code>, далее <code>Clients</code>, далее <code>greenlight</code>, далее <code>Client scope</code>, далее <code>Add client scope</code>, далее <code>groups</code>.</p>
+<p>Но я засомневался, потому что информацию о включении групп в токен прочитал только в двух источниках, больше ни у кого этого нет. Поэтому я не стал этого делать. Проверил подключение к <code>BigBlueButton</code>: без этого тоже работает. Пользователи подключаются и создают комнаты. В общем, работает и так.</p>
+<h2 id="podkliuchaem-keycloak-k-greenlight">Подключаем <code>Keycloak</code> к <code>Greenlight</code></h2>
+<p>Открываете <code>Keycloak</code>, далее <code>Administration Console</code>, выбираете слева область <code>greelight</code>, далее <code>Realm settings</code>, далее закладка <code>General</code>.</p>
+<p>Внизу щёлкаете по <code>OpenID Endpoint Configuration</code>.</p>
+<p>Откроется дополнительное окно</p>
+<p>В нём аккуратно выделяете строчку от <code>&quot;issuer&quot;:</code> и до запятой, без кавычек.</p>
+<p>Т.е. из строки</p>
+<pre><code>&quot;issuer&quot;:&quot;https://bbb.company.ru/keycloak/realms/greenlight&quot;
+</code></pre>
+<p>получится</p>
+<pre><code>https://bbb.company.ru/keycloak/realms/greenlight
+</code></pre>
+<p>Затем в окне терминала открываете файл <code>/root/greenlight-v3/.env</code> и редактируете строки:</p>
+<pre><code>OPENID_CONNECT_CLIENT_ID=greenlight
+OPENID_CONNECT_CLIENT_SECRET=**содержимое OPENID_CONNECT_CLIENT_SECRET**
+OPENID_CONNECT_ISSUER=https://bbb.company.ru/keycloak/realms/greenlight
+OPENID_CONNECT_REDIRECT=https://bbb.company.ru/
+</code></pre>
+<p>После этого делаем рестарт <code>Greelight</code>:</p>
+<pre><code># docker compose down &amp;&amp; docker compose up -d
+# bbb-conf --restart
+</code></pre>
+<h2 id="kak-sdelat">Как сделать</h2>
+<h3 id="kak-prisvoit-rol-administratora-dlia-uchetnoi-zapisi-v-keycloak">Как присвоить роль администратора для учетной записи в <code>Keycloak</code></h3>
+<pre><code># docker exec -it greenlight-v3 bundle exec rake user:set_admin_role[user@company.ru]
+</code></pre>
+<p>Можно здесь посмотреть: <a href="https://docs.bigbluebutton.org/greenlight/v3/install/#creating-an-admin-account">Creating an Admin Account</a></p>
+<h2 id="problemy">Проблемы</h2>
+<h3 id="pri-izmenenii-v-user-federation-i-obnovlenii-informatsii-o-pol-zovateliakh-poiavliaetsia-oshibka-otobrazheniia">При изменении в <code>User federation</code> и обновлении информации о пользователях появляется ошибка отображения</h3>
+<p>Нужно включить и выключить провайдера <code>LDAP</code> и обновить пользователей.</p>
+<h3 id="pri-sopostavlenii-grupp-poiavliaetsia-oshibka">При сопоставлении групп появляется ошибка</h3>
+<p>Нужно выключить <code>Preserve Group Inheritance</code> в настройке отображения <code>ldap-groups</code> для провайдера <code>LDAP</code> <code>User federation</code>.</p>
+<h2 id="osnovnye-komandy-kotorye-mogut-vam-potrebovat-sia-pri-rabote-cherez-ssh-klient">Основные команды, которые могут Вам потребоваться при работе через SSH-клиент</h2>
+<p>Чтение логов:</p>
+<pre><code># docker logs -f greenlight-v3
+</code></pre>
+<p>Перезапуск <code>BigBlueButton</code>:</p>
+<pre><code># bbb-conf --restart
+</code></pre>
+<p>Перезапуск <code>GreenLight</code>:</p>
+<pre><code># cd ~/greenlight-v3
+# docker-compose down
+# docker-compose up -d
+# bbb-conf --restart
+</code></pre>
+<p>Удаление всех записей вебинаров с сервера:</p>
+<pre><code>bbb-record --deleteall
+</code></pre>
+<p>Очистка кеша и логов на сервере:</p>
+<pre><code>bbb-conf --clean
+</code></pre>
+<h3 id="faily-i-direktorii-kotorye-mogut-byt-polezny">Файлы и директории, которые могут быть полезны</h3>
+<p>Конфигурационный файл <code>Greenlight</code>:</p>
+<pre><code>/root/greenlight/.env
+</code></pre>
+<p>Конфигурационный файл <code>Keycloack</code>:</p>
+<pre><code>/root/greenlight-v3/docker-compose.yml
+</code></pre>
+<h2 id="dopolnitel-nye-materialy">Дополнительные материалы</h2>
+<p><a href="https://habr.com/ru/articles/441112/">Прикручиваем LDAP-авторизацию к Kubernetes</a></p>
+<p><a href="https://docs.truedev.ru/Auth/keycloak/keycloak-map-ldap/#uidnumber-ldap-mapper">Подключение LDAP пользователей и групп в Keycloak</a></p>
+<p><a href="https://wiki.orionsoft.ru/zvirt/latest/keycloak/management-guide/">Руководство по управлению Keycloak</a></p>
+<p><a href="https://wiki.orionsoft.ru/zvirt/latest/keycloak/management-guide/#_%D0%BD%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0_%D1%84%D0%B5%D0%B4%D0%B5%D1%80%D0%B0%D1%86%D0%B8%D0%B8_c_ldap">Настройка федерации c LDAP</a></p>
+<p><a href="https://docs.bigbluebutton.org/administration/install/">Install BigBlueButton</a></p>
+<p><a href="https://bigbluebutton.github.io/greenlight_v3/gl3-external-authentication">External Authentication</a></p>
+<p><a href="https://support.kontur.ru/talk/52564-nastrojka_keycloak_dlya_integracii_s_tolkom">Настройка Keycloak</a></p>
+<p><a href="https://vk.com/wall-226121191_211">Интеграция Keycloak с FreeIPA</a></p>
+<p><a href="https://abakbot.com/ru/online-13/bigbluebutton">BigBlueButton в корпоративной сети</a></p>
+<p><a href="https://blog.sedicomm.com/2020/05/01/poshagovoe-rukovodstvo-kak-ustanovit-i-nastroit-sistemu-videokonferentssvyazi-bigbluebottom-s-greenlight-na-ubuntu-linux/">Установка BigBlueButton</a></p>
